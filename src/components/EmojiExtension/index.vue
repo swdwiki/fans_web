@@ -1,0 +1,62 @@
+<template>
+  <DropdownToolbar title="emoji" :visible="state.visible" @change="onChange">
+    <template #overlay>
+      <div class="emoji-container border-black">
+        <ol class="emojis flex flex-row flex-wrap w-80">
+          <li
+            v-for="(emoji, index) of emojis"
+            :key="`emoji-${index}`"
+            class="w-4 m-2 text-xl"
+            @click="emojiHandler(emoji)"
+            v-text="emoji"
+          ></li>
+        </ol>
+      </div>
+    </template>
+    <template #trigger>
+      <icon-face-smile-fill size="20" :stroke-width="2" class="text-center" style="margin-top: 2px" />
+    </template>
+  </DropdownToolbar>
+</template>
+
+<script lang="ts" setup>
+import { reactive } from 'vue';
+import type { PropType } from 'vue';
+import { DropdownToolbar } from 'md-editor-v3';
+import type { InsertContentGenerator } from 'md-editor-v3';
+import emojis from './data';
+
+const props = defineProps({
+  onInsert: {
+    type: Function as PropType<(generator: InsertContentGenerator) => void>,
+    default: () => () => null,
+  },
+});
+
+const state = reactive({
+  visible: false,
+});
+
+const emojiHandler = (emoji: string) => {
+  const generator: InsertContentGenerator = () => {
+    return {
+      targetValue: emoji,
+      select: true,
+      deviationStart: 0,
+      deviationEnd: 1,
+    };
+  };
+
+  props.onInsert(generator);
+};
+
+const onChange = (visible: boolean) => {
+  state.visible = visible;
+};
+</script>
+
+<script lang="ts">
+export default {
+  name: 'EmojiExtension',
+};
+</script>
