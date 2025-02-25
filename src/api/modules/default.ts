@@ -2,6 +2,7 @@ import service from '@/api/http';
 
 const UPLOAD_AVATAR = import.meta.env.VITE_UPLOAD_AVATAR_URL;
 const UPLOAD_FILE = import.meta.env.VITE_UPLOAD_FILE_URL;
+const UPLOAD_FILES = import.meta.env.VITE_UPLOAD_FILES_URL;
 
 export interface Author {
   nickname: string;
@@ -160,6 +161,7 @@ const defaultApi = {
   findPassword: (data: object) => service.post(`${webApiUrl}/account/find/password`, data),
   changeProfile: (data: object) => service.post(`${webApiUrl}/account/update/profile`, data),
   uploadFile: (data: any) => service.upload(`${UPLOAD_FILE}`, data),
+  uploadFiles: (data: any) => service.uploadFiles(`${UPLOAD_FILES}`, data),
   uploadAvatar: (data: any) => service.upload(`${UPLOAD_AVATAR}`, data),
   updateAvatar: (data: any) => service.post(`${webApiUrl}/account/update/avatar`, data),
   getCreatorList: (params: any) => service.get(`${webApiUrl}/user/creator/list`, params),

@@ -72,6 +72,16 @@ const service = {
     return axiosInstance.delete(url, params);
   },
 
+  uploadFiles: (url: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    return axiosInstance.post(url, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   upload: (url: string, file: FormData | File) =>
     axiosInstance.post(url, file, {
       headers: { 'Content-Type': 'multipart/form-data' },

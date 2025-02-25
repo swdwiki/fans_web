@@ -1,5 +1,5 @@
 <template>
-  <div class="work-editor-continar">
+  <div :loading="uploadLoading" class="work-editor-continar">
     <a-modal
       v-model:visible="updateStausVisible"
       :hide-cancel="true"
@@ -28,6 +28,33 @@
             >返回创作者中心</a-button
           >
         </div>
+      </div>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="uploadImagesVisible"
+      :hide-cancel="true"
+      :footer="true"
+      :ok-text="uploadImagesVisible ? '上传图片' : '取消'"
+      :mask-closable="false"
+      :unmount-on-close="true"
+      @before-ok="submitImagesUpload"
+    >
+      <template #title> 图片上传 </template>
+      <div>
+        <a-upload
+          ref="uploadImgsRef"
+          :multiple="true"
+          list-type="picture-card"
+          :action="filesUploadUrl"
+          image-preview
+          accept="image/*,"
+          name="files"
+          :headers="headers"
+          :file-list="fileList"
+          :auto-upload="false"
+          @before-upload="beforeUpload"
+        />
       </div>
     </a-modal>
     <a-modal
@@ -249,7 +276,6 @@ type VideoElement = SlateElement & {
 };
 
 const editorRef = shallowRef();
-const fileUploadUrl = import.meta.env.VITE_UPLOAD_FILE_URL;
 
 const showRulesVisible = ref(false);
 
@@ -273,10 +299,12 @@ onBeforeUnmount(() => {
 
 const { loading, setLoading } = useLoading();
 const { loading: saveLoading, setLoading: setSaveLoading } = useLoading();
+const { loading: uploadLoading, setLoading: setUploadLoading } = useLoading();
 const { loading: submitLoading, setLoading: setSubmitLoading } = useLoading();
 const { userInfo, isLoginStatus } = useUserStore();
 const router = useRouter();
 const updateStausVisible = ref(false);
+const uploadImgsList = ref([]);
 const submitWorkId = ref(0);
 
 const workCateList = ref<any>([]);
@@ -285,6 +313,12 @@ const tagsList = ref<Array<any>>([]);
 
 const readRuleStatus = ref(false);
 const showR18OptionStatus = ref(false);
+const uploadImagesVisible = ref(false);
+
+const uploadImgsRef = ref();
+
+const fileUploadUrl = import.meta.env.VITE_UPLOAD_FILE_URL;
+const filesUploadUrl = import.meta.env.VITE_UPLOAD_FILES_URL;
 
 const submitWorkForm = ref({
   title: '',
@@ -433,8 +467,42 @@ const checkHtml = (htmlContent: string) => {
   return finalContent.length > 0;
 };
 
-const handleCreated = (editor: any) => {
-  editorRef.value = editor; // 记录 editor 实例，重要！
+const beforeUpload = (file) => {
+  uploadImgsList.value.push(file);
+  return true;
+};
+
+const submitImagesUpload = (done: any) => {
+  setUploadLoading(true);
+  if (uploadImgsList.value && uploadImgsList.value.length === 0) {
+    Message.error('请选择图片');
+    done(false);
+    return;
+  }
+  defaultApi
+    .uploadFiles(uploadImgsList.value)
+    .then((res) => {
+      setUploadLoading(false);
+      if ((res as any).code === 0) {
+        Message.success('上传成功');
+        uploadImgsList.value = [];
+        // uploadImgsRef.value.clear();
+        fileList.value = [];
+        uploadImagesVisible.value = false;
+        const result = res.data
+          .map((item: any) => `<img style="width:100%;height:100%;" src="${item.url}" />`)
+          .join('');
+        done(true);
+        editorRef.value?.setHtml(editorRef.value.getHtml() + result);
+        return result;
+      }
+      done(false);
+      return '';
+    })
+    .catch((err) => {
+      setUploadLoading(false);
+      done(false);
+    });
 };
 
 const formRules = ref({
@@ -472,6 +540,10 @@ const formRules = ref({
   ],
 });
 
+const openUploadImagesModal = () => {
+  uploadImagesVisible.value = true;
+};
+
 const toolbarConfig: Partial<IToolbarConfig> = {
   excludeKeys: [
     'codeBlock',
@@ -500,8 +572,9 @@ const toolbarConfig: Partial<IToolbarConfig> = {
     'lineHeight',
     '|',
     'insertLink',
-    'insertImage',
-    'uploadImage',
+    'upLoadImagesButton',
+    // 'insertImage',
+    // 'uploadImage',
     'insertVideo',
     'insertTable',
     'divider',
@@ -640,6 +713,11 @@ const handleCoverError = (fileItem: FileItem) => {
       Message.error(message);
     }
   }
+};
+
+const handleCreated = (editor: any) => {
+  editor.uploadImageModal = openUploadImagesModal;
+  editorRef.value = editor; // 记录 editor 实例，重要！
 };
 
 onMounted(() => {

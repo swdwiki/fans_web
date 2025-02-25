@@ -26,6 +26,35 @@
         </div>
       </div>
     </a-modal>
+
+    <a-modal
+      v-model:visible="uploadImagesVisible"
+      :hide-cancel="true"
+      :footer="true"
+      :ok-text="uploadImagesVisible ? '上传图片' : '取消'"
+      :closable="false"
+      :mask-closable="false"
+      :unmount-on-close="true"
+      @before-ok="submitImagesUpload"
+    >
+      <template #title> 图片上传 </template>
+      <div>
+        <a-upload
+          ref="uploadImgsRef"
+          :multiple="true"
+          list-type="picture-card"
+          :action="fileUploadUrl"
+          image-preview
+          accept="image/*,"
+          name="files"
+          :headers="headers"
+          :file-list="fileList"
+          :auto-upload="false"
+          @before-upload="beforeUpload"
+        />
+      </div>
+    </a-modal>
+
     <a-modal
       :visible="showRulesVisible"
       width="80%"
@@ -271,6 +300,9 @@ const { headers } = useHeader();
 const workEditorRef = ref();
 const showMask = ref(false);
 
+const uploadImagesVisible = ref(false);
+const uploadImgsList = ref([]);
+
 // 内容 HTML
 
 const labelStyle = reactive({
@@ -411,10 +443,6 @@ const checkHtml = (htmlContent: string) => {
   return finalContent.length > 0;
 };
 
-const handleCreated = (editor: any) => {
-  updateEditorRef.value = editor; // 记录 editor 实例，重要！
-};
-
 const formRules = ref<any>({
   title: [
     {
@@ -478,8 +506,9 @@ const toolbarConfig: Partial<IToolbarConfig> = {
     'lineHeight',
     '|',
     'insertLink',
-    'insertImage',
-    'uploadImage',
+    'upLoadImagesButton',
+    // 'insertImage',
+    // 'uploadImage',
     'insertVideo',
     'insertTable',
     'divider',
@@ -541,6 +570,44 @@ const getWorkDetail = (workId: number) => {
     });
 };
 
+const beforeUpload = (file) => {
+  uploadImgsList.value.push(file);
+  return true;
+};
+
+const submitImagesUpload = (done: any) => {
+  if (uploadImgsList.value && uploadImgsList.value.length === 0) {
+    Message.error('请选择图片');
+    done(false);
+    return;
+  }
+  defaultApi
+    .uploadFiles(uploadImgsList.value)
+    .then((res) => {
+      if ((res as any).code === 0) {
+        Message.success('上传成功');
+        uploadImgsList.value = [];
+        // uploadImgsRef.value.clear();
+        fileList.value = [];
+        uploadImagesVisible.value = false;
+        const result = res.data
+          .map((item: any) => `<img style="width:100%;height:100%;" src="${item.url}" />`)
+          .join('');
+        done(true);
+        updateEditorRef.value?.setHtml(updateEditorRef.value.getHtml() + result);
+      } else {
+        done(false);
+      }
+    })
+    .catch((err) => {
+      done(false);
+    });
+};
+
+const openUploadImagesModal = () => {
+  uploadImagesVisible.value = true;
+};
+
 const getWorkCateList = () => {
   // TODO
   setLoading(true);
@@ -555,6 +622,11 @@ const getWorkCateList = () => {
     .catch(() => {
       setLoading(false);
     });
+};
+
+const handleCreated = (editor: any) => {
+  editor.uploadImageModal = openUploadImagesModal;
+  updateEditorRef.value = editor; // 记录 editor 实例，重要！
 };
 
 const uploadCoverSuccess = (fileItem: any) => {

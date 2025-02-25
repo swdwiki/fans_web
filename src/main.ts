@@ -8,6 +8,7 @@ import store from '@/store';
 import App from './App.vue';
 import '@/assets/styles/index.scss';
 import '@arco-design/web-vue/dist/arco.css';
+import './components/Editor/uploadImgs.ts';
 
 const app = createApp(App);
 
